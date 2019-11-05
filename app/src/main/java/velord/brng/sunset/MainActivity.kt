@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var isNight: Boolean = false
+    private lateinit var currentAnimation: AnimatorSet
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,7 +62,7 @@ class MainActivity : AppCompatActivity() {
         downAnim()
     }
 
-    private fun downAnim() {
+    private fun toDownAnim() {
         val sunAnim = getSunAnimDownAnimator()
 
         val withSunReflectAnim = getSunReflectionDownAnimator()
@@ -71,7 +72,7 @@ class MainActivity : AppCompatActivity() {
 
         val beforeSkyAnim = getSunsetToBlueSkyAnimator()
 
-        animationBuilder(
+        currentAnimation = animationBuilder(
             sunAnim,
             withSunReflectAnim, withSunReflectionHeatAnim,
             withSunHeatAnim, withSkyAnim,
@@ -79,7 +80,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun nightAnim() {
+    private fun toNightAnim() {
         val sunAnim = getSunAnimNightAnimator()
 
         val withSunReflectAnim = getSunReflectionNightAnimator()
@@ -89,7 +90,7 @@ class MainActivity : AppCompatActivity() {
 
         val beforeSkyAnim = getSunsetToNightSkyAnimator()
 
-        animationBuilder(
+        currentAnimation = animationBuilder(
             sunAnim,
             withSunReflectAnim, withSunReflectionHeatAnim,
             withSunHeatAnim, withSkyAnim,
@@ -125,29 +126,29 @@ class MainActivity : AppCompatActivity() {
         return sunAnimatorBuilder(view, sunReflectFromY, sunReflectToY)
     }
 
-    private fun getBlueToSunsetSkyAnimator(duration: Long = 3000) =
-        skyAnimatorBuilder(blueSkyColor, sunsetSkyColor, duration)
+    private fun getBlueToSunsetSkyAnimator(duration: Long = 3000)
+            = skyAnimatorBuilder(blueSkyColor, sunsetSkyColor, duration)
 
-    private fun getSunsetToNightSkyAnimator(duration: Long = 3000) =
-        skyAnimatorBuilder(sunsetSkyColor, nightSkyColor, duration)
+    private fun getSunsetToNightSkyAnimator(duration: Long = 3000)
+            = skyAnimatorBuilder(sunsetSkyColor, nightSkyColor, duration)
 
-    private fun getNightToSunsetSkyAnimator(duration: Long = 3000) =
-        skyAnimatorBuilder(nightSkyColor, sunsetSkyColor, duration)
+    private fun getNightToSunsetSkyAnimator(duration: Long = 3000)
+            = skyAnimatorBuilder(nightSkyColor, sunsetSkyColor, duration)
 
-    private fun getSunsetToBlueSkyAnimator(duration: Long = 3000) =
-        skyAnimatorBuilder(sunsetSkyColor, blueSkyColor, duration)
+    private fun getSunsetToBlueSkyAnimator(duration: Long = 3000)
+            = skyAnimatorBuilder(sunsetSkyColor, blueSkyColor, duration)
 
     private fun getHeatSunReflectionAnimator(duration: Long = 800,
                                              scaleX: Float = 1.3f,
                                              scaleY: Float = 1.3f,
-                                             repeat: Int = 5) =
-        sunHeatBuilder(sunReflectionView)
+                                             repeat: Int = 5)
+            = sunHeatBuilder(sunReflectionView, duration, scaleX, scaleY, repeat)
 
     private fun getHeatSunAnimator(duration: Long = 800,
                                    scaleX: Float = 1.3f,
                                    scaleY: Float = 1.3f,
-                                   repeat: Int = 5) =
-        sunHeatBuilder(sunView)
+                                   repeat: Int = 5)
+            = sunHeatBuilder(sunView, duration, scaleX, scaleY, repeat)
 
     private fun sunHeatBuilder(view: View,
                                duration: Long = 800,
@@ -185,8 +186,8 @@ class MainActivity : AppCompatActivity() {
             .apply { setEvaluator(ArgbEvaluator()) }
 
     private fun animationBuilder(heightAnimator: ObjectAnimator,
-                               vararg withAnim: ObjectAnimator,
-                               beforeAnim: ObjectAnimator) {
+                                 vararg withAnim: ObjectAnimator,
+                                 beforeAnim: ObjectAnimator): AnimatorSet =
         AnimatorSet().apply {
             doOnEnd {
                 if (isNight) isNight = false
@@ -197,5 +198,24 @@ class MainActivity : AppCompatActivity() {
             }.before(beforeAnim)
             start()
         }
+
+    inner class ReverseInterpolator : Interpolator {
+        override fun getInterpolation(input: Float): Float
+                =  Math.abs(input - 1f)
+    }
+
+    fun reverseSequentialAnimatorSet(animatorSet: AnimatorSet): AnimatorSet {
+        val animators = animatorSet.childAnimations
+        Collections.reverse(animators)
+
+        val reversedAnimatorSet = AnimatorSet()
+        reversedAnimatorSet.playSequentially(animators)
+        reversedAnimatorSet.duration = 4000
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            // getInterpolator() requires API 18
+            reversedAnimatorSet.interpolator = animatorSet.interpolator
+        }
+        return reversedAnimatorSet
     }
 }
