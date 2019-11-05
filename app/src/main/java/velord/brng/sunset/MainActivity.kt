@@ -54,12 +54,21 @@ class MainActivity : AppCompatActivity() {
         sunReflectionView = findViewById(R.id.sunReflection)
     }
 
+    private fun toState(f: () -> Unit) {
+        if (::currentAnimation.isInitialized) {
+            if (currentAnimation.isRunning)
+                currentAnimation.reverse()
+            else f()
+
+        } else f()
+    }
+
     private fun toNight() {
-        nightAnim()
+        toState { toNightAnim() }
     }
 
     private fun toDown() {
-        downAnim()
+        toState { toDownAnim() }
     }
 
     private fun toDownAnim() {

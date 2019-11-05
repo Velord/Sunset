@@ -16,7 +16,8 @@
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:layout_gravity="center"
-            android:src="@drawable/sun" />
+            android:src="@drawable/sun"
+            android:contentDescription="@string/sun"/>
     </FrameLayout>
 
     <FrameLayout
@@ -31,6 +32,7 @@
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:layout_gravity="center"
+            android:contentDescription="@string/sun_reflection"
             android:background="@drawable/sun_reflect" />
 
     </FrameLayout>
