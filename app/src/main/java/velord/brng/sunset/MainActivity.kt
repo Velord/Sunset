@@ -3,10 +3,12 @@ package velord.brng.sunset
 import android.animation.AnimatorSet
 import android.animation.ArgbEvaluator
 import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
 import android.os.Bundle
 import android.view.View
 import android.view.animation.AccelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.animation.doOnEnd
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
@@ -47,16 +49,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun toNight() {
         nightAnim()
-        isNight = true
     }
 
     private fun toDown() {
         downAnim()
-        isNight = false
     }
 
     private fun downAnim() {
-        val sunStartY = skyView.height.toFloat()
+        val sunStartY = sceneView.bottom.toFloat()
         val sunEndY = sunView.top.toFloat()
 
         val heightAnimator = sunAnimator(sunStartY, sunEndY)
@@ -65,12 +65,16 @@ class MainActivity : AppCompatActivity() {
 
         val before = sunsetToBlueSkyAnimator()
 
-        animationQueue(heightAnimator, with, before)
+        animationQueue(
+            heightAnimator,
+            with, heatSunAnimator(),
+            beforeAnim = before
+        )
     }
 
     private fun nightAnim() {
         val sunStartY = sunView.top.toFloat()
-        val sunEndY = skyView.height.toFloat()
+        val sunEndY = sceneView.bottom.toFloat()
 
         val heightAnimator = sunAnimator(sunStartY, sunEndY)
 
@@ -78,7 +82,11 @@ class MainActivity : AppCompatActivity() {
 
         val before = sunsetToNightSkyAnimator()
 
-        animationQueue(heightAnimator, with, before)
+        animationQueue(
+            heightAnimator,
+            with, heatSunAnimator(),
+            beforeAnim = before
+        )
     }
 
     private fun blueToSunsetSkyAnimator(duration: Long = 3000) =
@@ -95,11 +103,28 @@ class MainActivity : AppCompatActivity() {
 
     private fun sunAnimator(sunStartY: Float,
                             sunEndY: Float,
-                            duration: Long = 3000) =
+                            duration: Long = 4000) =
         ObjectAnimator
             .ofFloat(sunView, "y", sunStartY,  sunEndY)
             .setDuration(duration)
-            .apply { interpolator = AccelerateInterpolator() }
+            .apply {
+                interpolator = AccelerateInterpolator()
+            }
+
+    private fun heatSunAnimator(duration: Long = 800,
+                                scaleX: Float = 1.3f,
+                                scaleY: Float = 1.3f,
+                                repeat: Int = 5) =
+        ObjectAnimator.ofPropertyValuesHolder(
+            sunView,
+            PropertyValuesHolder.ofFloat("scaleX", scaleX),
+            PropertyValuesHolder.ofFloat("scaleY", scaleY))
+            .setDuration(duration)
+            .apply {
+                repeatCount = repeat
+                repeatMode = ObjectAnimator.REVERSE
+                interpolator = AccelerateInterpolator()
+            }
 
     private fun skyAnimator(from: Int,
                             to: Int,
@@ -110,12 +135,16 @@ class MainActivity : AppCompatActivity() {
             .apply { setEvaluator(ArgbEvaluator()) }
 
     private fun animationQueue(heightAnimator: ObjectAnimator,
-                               withAnim: ObjectAnimator,
+                               vararg withAnim: ObjectAnimator,
                                beforeAnim: ObjectAnimator) {
         AnimatorSet().apply {
-            play(heightAnimator)
-                .with(withAnim)
-                .before(beforeAnim)
+            doOnEnd {
+                if (isNight) isNight = false
+                else isNight = true
+            }
+            play(heightAnimator).apply {
+                withAnim.forEach { with(it) }
+            }.before(beforeAnim)
             start()
         }
     }
