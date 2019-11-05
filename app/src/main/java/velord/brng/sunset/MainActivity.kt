@@ -25,6 +25,8 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.getColor(this, R.color.night_sky)
     }
 
+    private var isNight: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -32,7 +34,8 @@ class MainActivity : AppCompatActivity() {
         initViews()
 
         sceneView.setOnClickListener {
-            startAnimation()
+            if (isNight) toDown()
+            else toNight()
         }
     }
 
@@ -42,38 +45,77 @@ class MainActivity : AppCompatActivity() {
         skyView = findViewById(R.id.sky)
     }
 
+    private fun toNight() {
+        nightAnim()
+        isNight = true
+    }
 
-    private fun startAnimation() {
+    private fun toDown() {
+        downAnim()
+        isNight = false
+    }
+
+    private fun downAnim() {
+        val sunStartY = skyView.height.toFloat()
+        val sunEndY = sunView.top.toFloat()
+
+        val heightAnimator = sunAnimator(sunStartY, sunEndY)
+
+        val with = nightToSunsetSkyAnimator()
+
+        val before = sunsetToBlueSkyAnimator()
+
+        animationQueue(heightAnimator, with, before)
+    }
+
+    private fun nightAnim() {
         val sunStartY = sunView.top.toFloat()
         val sunEndY = skyView.height.toFloat()
 
-        val heightAnimator = ObjectAnimator
+        val heightAnimator = sunAnimator(sunStartY, sunEndY)
+
+        val with = blueToSunsetSkyAnimator()
+
+        val before = sunsetToNightSkyAnimator()
+
+        animationQueue(heightAnimator, with, before)
+    }
+
+    private fun blueToSunsetSkyAnimator(duration: Long = 3000) =
+        skyAnimator(blueSkyColor, sunsetSkyColor, duration)
+
+    private fun sunsetToNightSkyAnimator(duration: Long = 3000) =
+        skyAnimator(sunsetSkyColor, nightSkyColor, duration)
+
+    private fun nightToSunsetSkyAnimator(duration: Long = 3000) =
+        skyAnimator(nightSkyColor, sunsetSkyColor, duration)
+
+    private fun sunsetToBlueSkyAnimator(duration: Long = 3000) =
+        skyAnimator(sunsetSkyColor, blueSkyColor, duration)
+
+    private fun sunAnimator(sunStartY: Float,
+                            sunEndY: Float,
+                            duration: Long = 3000) =
+        ObjectAnimator
             .ofFloat(sunView, "y", sunStartY,  sunEndY)
-            .setDuration(3000)
-            .apply {
-                interpolator = AccelerateInterpolator()
-            }
+            .setDuration(duration)
+            .apply { interpolator = AccelerateInterpolator() }
 
-        val sunsetSkyAnimator = ObjectAnimator
-            .ofInt(skyView, "backgroundColor",
-                blueSkyColor, sunsetSkyColor)
-            .setDuration(3000)
-            .apply {
-                setEvaluator(ArgbEvaluator())
-            }
+    private fun skyAnimator(from: Int,
+                            to: Int,
+                            duration: Long = 3000) =
+        ObjectAnimator
+            .ofInt(skyView, "backgroundColor", from, to)
+            .setDuration(duration)
+            .apply { setEvaluator(ArgbEvaluator()) }
 
-        val nightSkyAnimator = ObjectAnimator
-            .ofInt(skyView, "backgroundColor",
-                sunsetSkyColor, nightSkyColor)
-            .setDuration(3000)
-            .apply {
-                setEvaluator(ArgbEvaluator())
-            }
-
+    private fun animationQueue(heightAnimator: ObjectAnimator,
+                               withAnim: ObjectAnimator,
+                               beforeAnim: ObjectAnimator) {
         AnimatorSet().apply {
             play(heightAnimator)
-                .with(sunsetSkyAnimator)
-                .before(nightSkyAnimator)
+                .with(withAnim)
+                .before(beforeAnim)
             start()
         }
     }
